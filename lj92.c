@@ -402,12 +402,13 @@ inline static int nextdiff(ljp* self, int component_idx, int Px) {
 
     u16 ssssused = self->hufflut[component_idx][index];
     int usedbits = ssssused & 0xFF;
-    int t = ssssused >> 8;
-    self->sssshist[t]++;
+    int ssss = ssssused >> 8;
+    int extra_bits = ssss % 16;
+    self->sssshist[ssss]++;
     cnt -= usedbits;
     int keepbitsmask = (1 << cnt) - 1;
     b &= keepbitsmask;
-    while (cnt < t) {
+    while (cnt < extra_bits) {
         next = *(u16*)&self->data[ix];
         int one = next & 0xFF;
         int two = next >> 8;
@@ -420,12 +421,17 @@ inline static int nextdiff(ljp* self, int component_idx, int Px) {
         } else if (two == 0xFF)
             ix++;
     }
-    cnt -= t;
-    int diff = b >> cnt;
-    int vt = 1 << (t - 1);
-    if (diff < vt) {
-        vt = (-1 << t) + 1;
+    cnt -= extra_bits;
+    int diff;
+    if (ssss == 16) {
+      diff = 32768;
+    } else {
+      diff = b >> cnt;
+      int vt = 1 << (extra_bits - 1);
+      if (diff < vt) {
+        vt = (0xffffffff << extra_bits) + 1;
         diff += vt;
+      }
     }
     keepbitsmask = (1 << cnt) - 1;
     self->b = b & keepbitsmask;
